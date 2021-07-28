@@ -1,0 +1,71 @@
+version: "3.8"
+
+services: 
+    keycloak:
+        container_name: sso-keycloak
+        restart: always
+        build:
+            context: .
+            dockerfile: keycloak/Dockerfile
+        environment: 
+            TZ: America/Sao_Paulo
+            KEYCLOAK_USER: admin 
+            KEYCLOAK_PASSWORD: q1w2e3
+
+            DB_VENDOR: mysql
+            DB_ADDR: db-mysql
+            DB_DATABASE: keycloak
+
+            DB_USER: admin
+            DB_PASSWORD: q1w2e3
+            DB_PORT: 3306
+            
+            JDBC_PARAMS: 'useSSL=false'
+        ports: 
+            - "8280:8080"
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.50'
+                    memory: 512M
+                reservations:
+                    cpus: '0.25'
+                    memory: 64M
+        depends_on: 
+            - db-mysql
+        networks: 
+            - sso-rede
+    db-mysql:
+        container_name: db-mysql
+        restart: always
+        tty: true
+        command: [mysqld, --default_authentication_plugin=mysql_native_password, --character-set-server=utf8, --collation-server=utf8_bin, --default-storage-engine=INNODB]
+        build: 
+            context: .
+            dockerfile: mysql/Dockerfile
+        environment: 
+            TZ: America/Sao_Paulo
+            MYSQL_ROOT_PASSWORD: q1w2e3
+
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: q1w2e3
+            
+            MYSQL_DATABASE: keycloak
+        ports:
+            - "3306:3306"
+        volumes:
+            - ./.docker/dbdata:/var/lib/mysql
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.50'
+                    memory: 512M
+                reservations:
+                    cpus: '0.25'
+                    memory: 64M
+        networks: 
+            - sso-rede
+
+networks: 
+    sso-rede:
+        driver: bridge
